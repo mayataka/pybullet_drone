@@ -5,13 +5,14 @@ import time
 import os
 
 class ModelInfo(object):
-    def __init__(self, urdf_path, body_frame: str, prop_frames):
+    def __init__(self, urdf_path, body_frame: str, prop_frames: list):
         self.urdf_path = urdf_path
         self.body_frame = body_frame
         self.prop_frames = prop_frames
 
 class DroneSimulator(object):
-    def __init__(self, model_info: ModelInfo, time_step, gui=True, log=False, record=False):
+    def __init__(self, model_info: ModelInfo, time_step: float, 
+                 gui: bool=True, log: bool=False, record: bool=False):
         # simulation settings
         self.model_info = model_info
         self.time_step = time_step
@@ -73,7 +74,7 @@ class DroneSimulator(object):
     def get_body_world_angular_velocity(self) -> np.ndarray:
         return self.get_body_rotation_matrix().T @ self.get_body_local_angular_velocity()
 
-    def get_state(self, reference_frame='world') -> np.ndarray:
+    def get_state(self, reference_frame: str='world') -> np.ndarray:
         if reference_frame == 'world':
             return np.concatenate([
                 self.get_body_position(),
