@@ -11,11 +11,13 @@ ROTOR2_LINK_ID = 3
 ROTOR3_LINK_ID = 4
 
 class DroneSimulator(object):
-    def __init__(self, urdf_path, time_step, gui=True):
+    def __init__(self, urdf_path, time_step, gui=True, log=False, record=False):
         # simulation settings
         self.urdf_path = urdf_path
         self.time_step = time_step
         self.gui = gui
+        self.log = log
+        self.record = record
         # runtime variables
         self.time = None
         self.drone = None
@@ -30,7 +32,6 @@ class DroneSimulator(object):
         self.x_log = None
         self.u_log = None
         self.t_log = None
-        self.opterr_log = None
         self.sim_name = None
 
     def set_urdf(self, path_to_urdf):
@@ -91,7 +92,7 @@ class DroneSimulator(object):
         else:
             return NotImplementedError()
 
-    def init_simulation(self, initial_time, initial_body_position: np.ndarray, 
+    def init_simulation(self, simulation_name: str, initial_time, initial_body_position: np.ndarray, 
                         initial_body_orientation_quaternion: np.ndarray = np.array([0., 0., 0., 1.])) -> None:
         assert initial_body_position.shape[0] == 3
         assert initial_body_orientation_quaternion.shape[0] == 4
@@ -107,6 +108,16 @@ class DroneSimulator(object):
         self.drone = pybullet.loadURDF(os.path.abspath(self.urdf_path), useFixedBase=False)
         pybullet.resetBasePositionAndOrientation(self.drone, initial_body_position.tolist(), 
                                                  initial_body_orientation_quaternion.tolist())
+        if self.log:
+            log_dir = os.path.join(os.getcwd(), simulation_name+"_log")
+            self.log_dir = log_dir
+            os.makedirs(log_dir, exist_ok=True)
+            self.x_log = open(os.path.join(log_dir, "x.log"), mode='w')
+            self.u_log = open(os.path.join(log_dir, "u.log"), mode='w')
+            self.t_log = open(os.path.join(log_dir, "t.log"), mode='w')
+
+        if self.record:
+            pybullet.startStateLogging(pybullet.STATE_LOGGING_VIDEO_MP4, simulation_name+'.mp4')
 
     def step_simulation(self, u: np.ndarray) -> None:
         if self.drone is None:
@@ -146,6 +157,10 @@ class DroneSimulator(object):
                                      linkIndex=BODY_LINK_ID, 
                                      torqueObj=[0, 0, yaw_torque],
                                      flags=pybullet.LINK_FRAME)
+        if self.log:
+            np.savetxt(self.x_log, [self.get_state()])
+            np.savetxt(self.u_log, [u])
+            np.savetxt(self.t_log, np.array([self.get_time()]))
 
         pybullet.stepSimulation()
         time.sleep(self.time_step)
