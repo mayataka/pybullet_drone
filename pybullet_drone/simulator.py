@@ -125,9 +125,9 @@ class DroneSimulator(object):
                 if DroneSimulator.get_link_name_from_joint_info(joint_info) == prop_frame:
                     self.prop_frame_ids.append(DroneSimulator.get_link_index_from_joint_info(joint_info)) 
         if self.body_frame_id is None:
-            return RuntimeError("Could not find the specified body frame!")
+            raise RuntimeError("Could not find the specified body frame!")
         if len(self.prop_frame_ids) != len(self.model_info.prop_frames):
-            return RuntimeError("Could not find the all of the specified prop frames!")
+            raise RuntimeError("Could not find the all of the specified prop frames!")
 
         pybullet.resetBasePositionAndOrientation(self.drone, initial_body_position.tolist(), 
                                                  initial_body_quaternion.tolist())
@@ -145,8 +145,8 @@ class DroneSimulator(object):
             pybullet.startStateLogging(pybullet.STATE_LOGGING_VIDEO_MP4, simulation_name+'.mp4')
 
     def step(self, u: np.ndarray) -> None:
-        if self.drone is None:
-            return RuntimeError()
+        if self.drone == None:
+            raise RuntimeError("This simulator is not initialized!")
         assert u.shape[0] == len(self.prop_frame_ids)
         for thrust, prop_frame_id in zip(u.tolist(), self.prop_frame_ids):
             pybullet.applyExternalForce(objectUniqueId=self.drone, 
