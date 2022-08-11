@@ -10,10 +10,16 @@ ROTOR1_LINK_ID = 2
 ROTOR2_LINK_ID = 3
 ROTOR3_LINK_ID = 4
 
-class DroneSimulator(object):
-    def __init__(self, urdf_path, time_step, gui=True, log=False, record=False):
-        # simulation settings
+class ModelInfo(object):
+    def __init__(self, urdf_path, body_frame: str, prop_frames):
         self.urdf_path = urdf_path
+        self.body_frame = body_frame
+        self.prop_frames = prop_frames
+
+class DroneSimulator(object):
+    def __init__(self, model_info: ModelInfo, time_step, gui=True, log=False, record=False):
+        # simulation settings
+        self.model_info = model_info
         self.time_step = time_step
         self.gui = gui
         self.log = log
@@ -21,6 +27,8 @@ class DroneSimulator(object):
         # runtime variables
         self.time = None
         self.drone = None
+        self.body_frame_id = None
+        self.prop_frame_ids = []
         # camera 
         self.calib_camera = False
         self.camera_distance = 0.0
@@ -34,16 +42,13 @@ class DroneSimulator(object):
         self.t_log = None
         self.sim_name = None
 
-    def set_urdf(self, path_to_urdf):
-        self.path_to_urdf = path_to_urdf
-
     def set_camera(self, camera_distance, camera_yaw, camera_pitch, camera_target_pos):
         self.calib_camera = True
         self.camera_distance = camera_distance
         self.camera_yaw = camera_yaw
         self.camera_pitch = camera_pitch
         self.camera_target_pos = camera_target_pos
-    
+
     def get_time(self):
         return self.time
 
@@ -92,6 +97,12 @@ class DroneSimulator(object):
         else:
             return NotImplementedError()
 
+    def get_link_index_from_joint_info(joint_info):
+        return joint_info[0]
+
+    def get_link_name_from_joint_info(joint_info):
+        return joint_info[12].decode('utf-8')
+
     def init_simulation(self, simulation_name: str, initial_time, initial_body_position: np.ndarray, 
                         initial_body_quaternion: np.ndarray = np.array([0., 0., 0., 1.])) -> None:
         assert initial_body_position.shape[0] == 3
@@ -105,9 +116,27 @@ class DroneSimulator(object):
         pybullet.setTimeStep(self.time_step)
         pybullet.setAdditionalSearchPath(pybullet_data.getDataPath())
         plane = pybullet.loadURDF("plane.urdf")
-        self.drone = pybullet.loadURDF(os.path.abspath(self.urdf_path), useFixedBase=False)
+
+        self.drone = pybullet.loadURDF(os.path.abspath(self.model_info.urdf_path), useFixedBase=False)
+        self.body_frame_id = None
+        self.prop_frame_ids = []
+        nJoints = pybullet.getNumJoints(self.drone)
+        for j in range(nJoints):
+            joint_info = pybullet.getJointInfo(self.drone, j)
+            print(DroneSimulator.get_link_name_from_joint_info(joint_info))
+            if DroneSimulator.get_link_name_from_joint_info(joint_info) == self.model_info.body_frame:
+                self.body_frame_id = DroneSimulator.get_link_index_from_joint_info(joint_info)
+            for prop_frame in self.model_info.prop_frames:
+                if DroneSimulator.get_link_name_from_joint_info(joint_info) == prop_frame:
+                    self.prop_frame_ids.append(DroneSimulator.get_link_index_from_joint_info(joint_info)) 
+        if self.body_frame_id is None:
+            return RuntimeError("Could not find the specified body frame!")
+        if len(self.prop_frame_ids) != len(self.model_info.prop_frames):
+            return RuntimeError("Could not find the all of the specified prop frames!")
+
         pybullet.resetBasePositionAndOrientation(self.drone, initial_body_position.tolist(), 
                                                  initial_body_quaternion.tolist())
+
         if self.log:
             log_dir = os.path.join(os.getcwd(), simulation_name+"_log")
             self.log_dir = log_dir
@@ -123,39 +152,17 @@ class DroneSimulator(object):
     def step_simulation(self, u: np.ndarray) -> None:
         if self.drone is None:
             return RuntimeError()
-        assert u.shape[0] == 4
-        rotor0_thrust = u[0]
-        rotor1_thrust = u[1]
-        rotor2_thrust = u[2]
-        rotor3_thrust = u[3]
-        pybullet.applyExternalForce(objectUniqueId=self.drone, 
-                                    linkIndex=ROTOR0_LINK_ID, 
-                                    forceObj=[0, 0, rotor0_thrust],
-                                    posObj=[0, 0, 0],
-                                    flags=pybullet.LINK_FRAME)
-        pybullet.applyExternalForce(objectUniqueId=self.drone, 
-                                    linkIndex=ROTOR1_LINK_ID, 
-                                    forceObj=[0, 0, rotor1_thrust],
-                                    posObj=[0, 0, 0],
-                                    flags=pybullet.LINK_FRAME)
-        pybullet.applyExternalForce(objectUniqueId=self.drone, 
-                                    linkIndex=ROTOR2_LINK_ID, 
-                                    forceObj=[0, 0, rotor2_thrust],
-                                    posObj=[0, 0, 0],
-                                    flags=pybullet.LINK_FRAME)
-        pybullet.applyExternalForce(objectUniqueId=self.drone, 
-                                    linkIndex=ROTOR3_LINK_ID, 
-                                    forceObj=[0, 0, rotor3_thrust],
-                                    posObj=[0, 0, 0],
-                                    flags=pybullet.LINK_FRAME)
-        # TODO: add body yaw-torque due to rotor torques
-        rotor0_torque = 0.0
-        rotor1_torque = 0.0
-        rotor2_torque = 0.0
-        rotor3_torque = 0.0
-        yaw_torque = - rotor0_torque + rotor1_torque - rotor2_torque + rotor3_torque # is this correct?
+        assert u.shape[0] == len(self.prop_frame_ids)
+        for thrust, prop_frame_id in zip(u.tolist(), self.prop_frame_ids):
+            pybullet.applyExternalForce(objectUniqueId=self.drone, 
+                                        linkIndex=prop_frame_id,
+                                        forceObj=[0, 0, thrust],
+                                        posObj=[0, 0, 0],
+                                        flags=pybullet.LINK_FRAME)
+        # TODO: add body yaw-torque due to prop torques
+        yaw_torque = 0.0
         pybullet.applyExternalTorque(objectUniqueId=self.drone, 
-                                     linkIndex=BODY_LINK_ID, 
+                                     linkIndex=self.body_frame_id, 
                                      torqueObj=[0, 0, yaw_torque],
                                      flags=pybullet.LINK_FRAME)
         if self.log:

@@ -1,10 +1,15 @@
-import pybullet_drone
+from pyexpat import model
+from pybullet_drone import ModelInfo, DroneSimulator
 import numpy as np
 
 urdf_path = 'cf2_description/cf2x.urdf'
 time_step = 0.01
 
-sim = pybullet_drone.DroneSimulator(urdf_path, time_step)
+model_info = ModelInfo(urdf_path=urdf_path, 
+                       body_frame='center_of_mass_link', 
+                       prop_frames=['prop0_link', 'prop1_link', 'prop2_link', 'prop3_link'])
+
+sim = DroneSimulator(model_info, time_step)
 sim.init_simulation(simulation_name='test',
                     initial_time=0.0, 
                     initial_body_position=np.array([0, 0, 2.0]), 
