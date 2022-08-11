@@ -116,6 +116,7 @@ class DroneSimulator(object):
             self.u_log = open(os.path.join(log_dir, "u.log"), mode='w')
             self.t_log = open(os.path.join(log_dir, "t.log"), mode='w')
 
+        pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_GUI, 0)
         if self.record:
             pybullet.startStateLogging(pybullet.STATE_LOGGING_VIDEO_MP4, simulation_name+'.mp4')
 
