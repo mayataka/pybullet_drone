@@ -98,8 +98,8 @@ class DroneSimulator(object):
     def get_link_name_from_joint_info(joint_info):
         return joint_info[12].decode('utf-8')
 
-    def init_simulation(self, simulation_name: str, initial_time, initial_body_position: np.ndarray, 
-                        initial_body_quaternion: np.ndarray = np.array([0., 0., 0., 1.])) -> None:
+    def init(self, simulation_name: str, initial_time, initial_body_position: np.ndarray, 
+             initial_body_quaternion: np.ndarray = np.array([0., 0., 0., 1.])) -> None:
         assert initial_body_position.shape[0] == 3
         assert initial_body_quaternion.shape[0] == 4
         self.time = initial_time
@@ -144,7 +144,7 @@ class DroneSimulator(object):
         if self.record:
             pybullet.startStateLogging(pybullet.STATE_LOGGING_VIDEO_MP4, simulation_name+'.mp4')
 
-    def step_simulation(self, u: np.ndarray) -> None:
+    def step(self, u: np.ndarray) -> None:
         if self.drone is None:
             return RuntimeError()
         assert u.shape[0] == len(self.prop_frame_ids)

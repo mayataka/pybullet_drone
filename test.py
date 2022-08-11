@@ -1,4 +1,3 @@
-from pyexpat import model
 from pybullet_drone import ModelInfo, DroneSimulator
 import numpy as np
 
@@ -10,14 +9,14 @@ model_info = ModelInfo(urdf_path=urdf_path,
                        prop_frames=['prop0_link', 'prop1_link', 'prop2_link', 'prop3_link'])
 
 sim = DroneSimulator(model_info, time_step)
-sim.init_simulation(simulation_name='test',
-                    initial_time=0.0, 
-                    initial_body_position=np.array([0, 0, 2.0]), 
-                    initial_body_quaternion=np.array([0, 0, 0, 1.0]))
+sim.init(simulation_name='test',
+         initial_time=0.0, 
+         initial_body_position=np.array([0, 0, 2.0]), 
+         initial_body_quaternion=np.array([0, 0, 0, 1.0]))
 
 while True:
     u = 2 * np.random.rand(4)
-    sim.step_simulation(u)
+    sim.step(u)
     t = sim.get_time()
     x = sim.get_state()
     print('t: ', t, ', x: ', x)
