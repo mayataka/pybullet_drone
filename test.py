@@ -4,7 +4,7 @@ import numpy as np
 urdf_path = 'iris_description/iris.urdf'
 time_step = 0.01
 
-sim = pybullet_drone.DroneSimulator(urdf_path, time_step, log=True, record=True)
+sim = pybullet_drone.DroneSimulator(urdf_path, time_step)
 sim.init_simulation(simulation_name='test',
                     initial_time=0.0, 
                     initial_body_position=np.array([0, 0, 2.0]), 

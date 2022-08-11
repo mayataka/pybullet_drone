@@ -1,2 +1,3 @@
 pybullet
 pybullet_data
+numpy
