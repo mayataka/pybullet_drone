@@ -51,14 +51,14 @@ class DroneSimulator(object):
         base_position, _ = pybullet.getBasePositionAndOrientation(self.drone)
         return np.array(base_position)
 
-    def get_body_orientation_quaternion(self) -> np.ndarray:
+    def get_body_quaternion(self) -> np.ndarray:
         _, base_orientation = pybullet.getBasePositionAndOrientation(self.drone)
         return np.array(base_orientation) 
 
-    def get_body_orientation_matrix(self) -> np.ndarray:
+    def get_body_rotation_matrix(self) -> np.ndarray:
         _, base_orientation = pybullet.getBasePositionAndOrientation(self.drone)
-        base_orientation_matrix = np.reshape(pybullet.getMatrixFromQuaternion(base_orientation), [3, 3]) 
-        return base_orientation_matrix 
+        base_rotation_matrix = np.reshape(pybullet.getMatrixFromQuaternion(base_orientation), [3, 3]) 
+        return base_rotation_matrix
 
     def get_body_local_linear_velocity(self) -> np.ndarray:
         body_local_linear_velocity, _ = pybullet.getBaseVelocity(self.drone)
@@ -69,23 +69,23 @@ class DroneSimulator(object):
         return np.array(body_local_angular_velocity)
 
     def get_body_world_linear_velocity(self) -> np.ndarray:
-        return self.get_body_orientation_matrix().T @ self.get_body_local_linear_velocity()
+        return self.get_body_rotation_matrix().T @ self.get_body_local_linear_velocity()
 
     def get_body_world_angular_velocity(self) -> np.ndarray:
-        return self.get_body_orientation_matrix().T @ self.get_body_local_angular_velocity()
+        return self.get_body_rotation_matrix().T @ self.get_body_local_angular_velocity()
 
     def get_state(self, reference_frame='world') -> np.ndarray:
         if reference_frame == 'world':
             return np.concatenate([
                 self.get_body_position(),
-                self.get_body_orientation_quaternion(),
+                self.get_body_quaternion(),
                 self.get_body_world_linear_velocity(),
                 self.get_body_world_angular_velocity()
             ])
         elif reference_frame == 'local':
             return np.concatenate([
                 self.get_body_position(),
-                self.get_body_orientation_quaternion(),
+                self.get_body_quaternion(),
                 self.get_body_local_linear_velocity(),
                 self.get_body_local_angular_velocity()
             ])
