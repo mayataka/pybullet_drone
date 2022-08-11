@@ -4,12 +4,6 @@ import numpy as np
 import time
 import os
 
-BODY_LINK_ID = 0
-ROTOR0_LINK_ID = 1
-ROTOR1_LINK_ID = 2
-ROTOR2_LINK_ID = 3
-ROTOR3_LINK_ID = 4
-
 class ModelInfo(object):
     def __init__(self, urdf_path, body_frame: str, prop_frames):
         self.urdf_path = urdf_path
