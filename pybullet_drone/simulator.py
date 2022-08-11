@@ -93,9 +93,9 @@ class DroneSimulator(object):
             return NotImplementedError()
 
     def init_simulation(self, simulation_name: str, initial_time, initial_body_position: np.ndarray, 
-                        initial_body_orientation_quaternion: np.ndarray = np.array([0., 0., 0., 1.])) -> None:
+                        initial_body_quaternion: np.ndarray = np.array([0., 0., 0., 1.])) -> None:
         assert initial_body_position.shape[0] == 3
-        assert initial_body_orientation_quaternion.shape[0] == 4
+        assert initial_body_quaternion.shape[0] == 4
         self.time = initial_time
         if self.gui:
             pybullet.connect(pybullet.GUI)
@@ -107,7 +107,7 @@ class DroneSimulator(object):
         plane = pybullet.loadURDF("plane.urdf")
         self.drone = pybullet.loadURDF(os.path.abspath(self.urdf_path), useFixedBase=False)
         pybullet.resetBasePositionAndOrientation(self.drone, initial_body_position.tolist(), 
-                                                 initial_body_orientation_quaternion.tolist())
+                                                 initial_body_quaternion.tolist())
         if self.log:
             log_dir = os.path.join(os.getcwd(), simulation_name+"_log")
             self.log_dir = log_dir
