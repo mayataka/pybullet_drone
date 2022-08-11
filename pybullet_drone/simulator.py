@@ -24,6 +24,9 @@ class DroneSimulator(object):
         self.drone = None
         self.body_frame_id = None
         self.prop_frame_ids = []
+        self.body_world_linear_acceleration = np.zeros(3)
+        self.body_local_linear_acceleration = np.zeros(3)
+        self.body_world_linear_velocity_prev = np.zeros(3)
         # camera 
         self.calib_camera = False
         self.camera_distance = 0.0
@@ -73,6 +76,12 @@ class DroneSimulator(object):
 
     def get_body_world_angular_velocity(self) -> np.ndarray:
         return self.get_body_rotation_matrix().T @ self.get_body_local_angular_velocity()
+
+    def get_body_world_linear_acceleration(self) -> np.ndarray:
+        return self.body_world_linear_acceleration
+
+    def get_body_local_linear_acceleration(self) -> np.ndarray:
+        return self.body_local_linear_acceleration
 
     def get_state(self, reference_frame: str='world') -> np.ndarray:
         if reference_frame == 'world':
@@ -131,7 +140,9 @@ class DroneSimulator(object):
 
         pybullet.resetBasePositionAndOrientation(self.drone, initial_body_position.tolist(), 
                                                  initial_body_quaternion.tolist())
-
+        self.body_world_linear_acceleration = np.zeros(3)
+        self.body_local_linear_acceleration = np.zeros(3)
+        self.body_world_linear_velocity_prev = np.zeros(3)
         if self.log:
             log_dir = os.path.join(os.getcwd(), simulation_name+"_log")
             self.log_dir = log_dir
@@ -168,3 +179,7 @@ class DroneSimulator(object):
         pybullet.stepSimulation()
         time.sleep(self.time_step)
         self.time += self.time_step
+
+        self.body_world_linear_acceleration = (self.get_body_world_linear_velocity() - self.body_world_linear_velocity_prev) / self.time_step
+        self.body_local_linear_acceleration = self.get_body_rotation_matrix() @ self.body_world_linear_acceleration
+        self.body_world_linear_velocity_prev = self.get_body_world_linear_velocity()
