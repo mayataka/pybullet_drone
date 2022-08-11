@@ -1,0 +1,1 @@
+The resource files are retrived from [gym-pybullet-drones](https://github.com/utiasDSL/gym-pybullet-drones) under the [MIT license](https://github.com/utiasDSL/gym-pybullet-drones/blob/master/LICENSE).
