@@ -18,5 +18,5 @@ while True:
     u = 2 * np.random.rand(4)
     sim.step(u)
     t = sim.get_time()
-    x = sim.get_state()
+    x = sim.get_state(velocity_reference_frame='local')
     print('t: ', t, ', x: ', x)
